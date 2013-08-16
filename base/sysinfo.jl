@@ -11,7 +11,8 @@ export  CPU_CORES,
         loadavg,
         free_memory,
         total_memory,
-        shlib_ext
+        shlib_ext,
+	shlib_list
 
 import ..Base: WORD_SIZE, OS_NAME, ARCH, MACHINE
 import ..Base: show
@@ -138,6 +139,12 @@ elseif OS_NAME === :Windows
 else
     #assume OS_NAME === :Linux, or similar
     const shlib_ext = "so"
+end
+
+# Returns a list of all shared libraries currently open()'ed by this process
+@unix_only function shlib_list()
+    shlibs = readchomp(`lsof -p $(getpid())` |> `grep -E \.$(shlib_ext)[.0-9]*\$` |> `awk '{ print $NF; }'`)
+    split(shlibs)
 end
 
 end
