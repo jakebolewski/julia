@@ -617,12 +617,15 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
     elseif is(head, :&) && length(args) == 1
         print(io, '&')
         show_unquoted(io, args[1])
-
+    
     # transpose
     elseif is(head, symbol('\'')) && length(args) == 1
         show_unquoted(io, args[1])
         print(io, '\'')
 
+    elseif is(head, :break)
+        print(io, "break")
+    
     # print anything else as "Expr(head, args...)"
     else
         warn("could not show Expr")
