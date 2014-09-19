@@ -625,13 +625,10 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
 
     # print anything else as "Expr(head, args...)"
     else
-        print(io, "\$(Expr(")
-        show(io, ex.head)
-        for arg in args
-            print(io, ", ")
-            show(io, arg)
-        end
-        print(io, "))")
+        warn("could not show Expr")
+        ccall(:jl_, Void, (Any,), ex)
+        println()
+ 
     end
 
     show_expr_type(io, ex.typ)
