@@ -503,6 +503,14 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
         show_unquoted(io, args[3], indent)
         print(io, ']')
 
+    # untyped comprehension
+    elseif is(head, :comprehension) && length(args) == 2
+        print(io, '[')
+        show_unquoted(io, args[1], indent)
+        print(io, " for ")
+        show_unquoted(io, args[2], indent)
+        print(io, ']')
+
     elseif is(head, :ccall)
         show_unquoted(io, :ccall, indent)
         show_enclosed_list(io, '(', args, ",", ')', indent)
