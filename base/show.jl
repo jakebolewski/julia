@@ -243,7 +243,7 @@ const quoted_syms = Set{Symbol}([:(:),:(::),:(:=),:(=),:(==),:(===),:(=>)])
 const uni_ops = Set{Symbol}([:(+), :(-), :(!), :(¬), :(~), :(<:), :(>:), :(√), :(∛), :(∜)])
 const expr_infix_wide = Set([:(=), :(+=), :(-=), :(*=), :(/=), :(\=), :(&=),
     :(|=), :($=), :(>>>=), :(>>=), :(<<=), :(&&), :(||)])
-const expr_infix = Set([:(:), :(<:), :(->), :(=>), symbol("::")])
+const expr_infix = Set([:(:), :(<:), :(->), :(=>), symbol("::"), :in])
 const expr_calls  = [:call =>('(',')'), :calldecl =>('(',')'), :ref =>('[',']'), :curly =>('{','}')]
 const expr_parens = [:tuple=>('(',')'), :vcat=>('[',']'), :cell1d=>('{','}'),
                      :hcat =>('[',']'), :row =>('[',']')]
@@ -635,7 +635,6 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
     
     # print anything else as "Expr(head, args...)"
     else
-        warn("could not show Expr")
         ccall(:jl_, Void, (Any,), ex)
         println()
  
