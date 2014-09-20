@@ -626,9 +626,9 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
     elseif head in (:stdcall, :cdecl, :fastcall, :thiscall)
         print(io, head)
 
-    elseif is(head, :break)
-        print(io, "break")
-
+    elseif head in (:break, :continue)
+        print(io, head)
+    
     # print anything else as "Expr(head, args...)"
     else
         warn("could not show Expr")
