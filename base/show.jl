@@ -622,10 +622,13 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
     elseif is(head, symbol('\'')) && length(args) == 1
         show_unquoted(io, args[1])
         print(io, '\'')
+    
+    elseif head in (:stdcall, :cdecl, :fastcall, :thiscall)
+        print(io, head)
 
     elseif is(head, :break)
         print(io, "break")
-    
+
     # print anything else as "Expr(head, args...)"
     else
         warn("could not show Expr")
