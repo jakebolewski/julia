@@ -1,3 +1,4 @@
+import Base: show, isvarargtype, show_comma_array, print
 
 show(x) = show(STDOUT::IO, x)
 
@@ -530,6 +531,9 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
         show_block(io, head, Expr(:calldecl, args[1].args...), args[2], indent)
         print(io, "end")
 
+    elseif head === :copyast && nargs == 1
+        show_unquoted(io, args[1], indent)
+
     # block with argument
     elseif head in (:for,:while,:function,:if,:module) && nargs==2
         show_block(io, head, args[1], args[2], indent); print(io, "end")
@@ -585,10 +589,12 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
         print(io, "end")
 
     elseif is(head, :let) && nargs >= 1
-        show_block(io, "let", args[2:end], args[1], indent); print(io, "end")
+        show_block(io, "let", args[2:end], args[1], indent)
+        print(io, "end")
 
     elseif is(head, :block) || is(head, :body)
-        show_block(io, "begin", ex, indent); print(io, "end")
+        show_block(io, "begin", ex, indent)
+        print(io, "end")
 
     elseif is(head, :quote) && nargs == 1
         show_unquoted_quote_expr(io, args[1], indent, 0)
@@ -1220,7 +1226,7 @@ function bitshow(io::IO, B::BitArray)
         print_bit_chunk(io, B.chunks[i])
         print(io, ": ")
     end
-    l = (@_mod64 (length(B)-1)) + 1
+    l = (Base.@_mod64 (length(B)-1)) + 1
     print_bit_chunk(io, B.chunks[end], l)
 end
 bitshow(B::BitArray) = bitshow(STDOUT, B)
