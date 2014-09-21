@@ -536,7 +536,7 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
 
     # type declaration
     elseif is(head, :type) && nargs==3
-        show_block(io, args[1] ? :type : :immutable, args[2], args[3], indent)
+        show_block(io, ifelse(args[1], :type, :immutable), args[2], args[3], indent)
         print(io, "end")
 
     # empty return (i.e. "function f() return end")
