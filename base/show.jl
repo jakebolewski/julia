@@ -495,21 +495,22 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
             show_call(io, head, func, func_args, indent)
         end
 
-    # typed comprehension
-    elseif is(head, :typed_comprehension) && length(args) == 3
-        show_unquoted(io, args[1], indent)
+    # typed / untyped comprehension
+    elseif head === :comprehension || head === :typed_comprehension && length(args) >= 2
+        i, nargs = 1, length(args)
+        if head === :typed_comprehension
+            show_unquoted(io, args[i], indent)
+            i += 1
+        end
         print(io, '[')
-        show_unquoted(io, args[2], indent)
+        show_unquoted(io, args[i], indent)
+        i += 1
         print(io, " for ")
-        show_unquoted(io, args[3], indent)
-        print(io, ']')
-
-    # untyped comprehension
-    elseif is(head, :comprehension) && length(args) == 2
-        print(io, '[')
-        show_unquoted(io, args[1], indent)
-        print(io, " for ")
-        show_unquoted(io, args[2], indent)
+        for arg in args[i:end]
+            show_unquoted(io, args[i], indent)
+            i < nargs && print(io, ", ")
+            i += 1
+        end
         print(io, ']')
 
     elseif is(head, :ccall)
