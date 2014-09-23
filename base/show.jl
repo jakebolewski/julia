@@ -242,13 +242,14 @@ show_unquoted(io::IO, ex, ::Int,::Int) = show(io, ex)
 const indent_width = 4
 const quoted_syms = Set{Symbol}([:(:),:(::),:(:=),:(=),:(==),:(===),:(=>)])
 const uni_ops = Set{Symbol}([:(+), :(-), :(!), :(¬), :(~), :(<:), :(>:), :(√), :(∛), :(∜)])
-const expr_infix_wide = Set([:(=), :(+=), :(-=), :(*=), :(/=), :(\=), :(&=),
-    :(|=), :($=), :(>>>=), :(>>=), :(<<=), :(&&), :(||), :(%=)])
+const expr_infix_wide = Set{Symbol}([:(=), :(+=), :(-=), :(*=), :(/=), :(\=), :(&=),
+                                     :(|=), :($=), :(>>>=), :(>>=), :(<<=), :(&&), :(||), :(%=)])
 const expr_infix = Set([:(:), :(<:), :(->), :(=>), symbol("::"), :in])
 const expr_calls  = [:call =>('(',')'), :calldecl =>('(',')'), :ref =>('[',']'), :curly =>('{','}')]
+const expr_callconv = Set{Symbol}([:stdcall, :cdecl, :fastcall, :thiscall])
 const expr_parens = [:tuple=>('(',')'), :vcat=>('[',']'), :cell1d=>('{','}'),
                      :hcat =>('[',']'), :row =>('[',']')]
-
+ 
 ## AST decoding helpers ##
 
 is_id_start_char(c::Char) = ccall(:jl_id_start_char, Cint, (Uint32,), c) != 0
@@ -363,6 +364,7 @@ function show_call(io::IO, head, func, func_args, indent)
     end
 end
 
+
 ## AST printing ##
 
 show_unquoted(io::IO, sym::Symbol, ::Int, ::Int)        = print(io, sym)
@@ -399,6 +401,7 @@ function show_unquoted_quote_expr(io::IO, value, indent::Int, prec::Int)
         end
     end
 end
+
 
 # TODO: implement interpolated strings
 function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
@@ -629,23 +632,19 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
         end
         print(io, '"', a..., '"')
 
-    elseif is(head, :&) && length(args) == 1
-        print(io, '&')
-        show_unquoted(io, args[1])
-    
-    elseif is(head, :$) && length(args) == 1
-        print(io, '$')
+    elseif head === :& || head === :$ && length(args) == 1
+        print(io, head)
         show_unquoted(io, args[1])
 
     # transpose
-    elseif is(head, symbol('\'')) && length(args) == 1
+    elseif head === symbol("'") || head === symbol(".'") && length(args) == 1
         show_unquoted(io, args[1])
-        print(io, '\'')
+        print(io, head)
     
-    elseif head in (:stdcall, :cdecl, :fastcall, :thiscall)
+    elseif head in expr_callconv
         print(io, head)
 
-    elseif head in (:break, :continue)
+    elseif head === :break || head === :continue
         print(io, head)
     
     # print anything else as "Expr(head, args...)"
