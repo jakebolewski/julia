@@ -673,6 +673,9 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
 
     elseif head === :using || head === :import || head === :importall
         print(io, head, " ", join(args, "."))
+    
+    elseif head === :export
+        print(io, head, " ", join(args, ","))
 
     # print anything else as "Expr(head, args...)"
     else
