@@ -247,8 +247,8 @@ const expr_infix_wide = Set{Symbol}([:(=), :(+=), :(-=), :(*=), :(/=), :(\=), :(
 const expr_infix = Set([:(:), :(<:), :(->), :(=>), symbol("::"), :in])
 const expr_calls  = [:call =>('(',')'), :calldecl =>('(',')'), :ref =>('[',']'), :curly =>('{','}')]
 const expr_callconv = Set{Symbol}([:stdcall, :cdecl, :fastcall, :thiscall])
-const expr_parens = [:tuple=>('(',')'), :vcat=>('[',']'), :cell1d=>('{','}'),
-                     :hcat =>('[',']'), :row =>('[',']')]
+const expr_parens = [:tuple=>('(',')'), :vcat=>('[',']'), :typed_vcat=>('[',']'), :cell1d=>('{','}'),
+                     :hcat =>('[',']'), :typed_hcat=>('[',']'), :row =>('[',']')]
  
 ## AST decoding helpers ##
 
@@ -434,16 +434,25 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
     # list (i.e. "(1,2,3)" or "[1,2,3]")
     elseif haskey(expr_parens, head)               # :tuple/:vcat/:cell1d
         op, cl = expr_parens[head]
-        if head === :vcat && !isempty(args) && is_expr(args[1], :row)
+        if head === :vcat && nargs > 0 && is_expr(args[1], :row)
             sep = ";"
-        elseif head === :hcat || head === :row
+        elseif head === :hcat || head === :typed_hcat || head === :row
             sep = " "
         else
             sep = ","
         end
+        if head === :typed_vcat || head === :typed_hcat
+            print(io, args[1])
+        end
         head !== :row && print(io, op)
-        show_list(io, args, sep, indent)
-        if is(head, :tuple) && nargs == 1; print(io, ','); end
+        if head === :typed_vcat || head === :typed_hcat && nargs > 0
+            show_list(io, args[2:end], sep, indent)
+        elseif nargs > 0
+            show_list(io, args, sep, indent)
+            if head === :tuple && nargs == 1
+                print(io, ',')
+            end
+        end
         head !== :row && print(io, cl)
 
     # function declaration (like :call but always printed with parens)
