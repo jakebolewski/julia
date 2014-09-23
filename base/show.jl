@@ -455,6 +455,21 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
         end
         head !== :row && print(io, cl)
 
+    # 2d any array (i.e. "{1 2; 3 4}")
+    elseif head === :cell2d
+        nrows, ncols = args[1], args[2]
+        print(io, '{')
+        if nargs > 0
+            for r = 1:nrows
+                for c = 1:ncols
+                    print(io, args[2 + r + (c-1) * nrows])
+                    c != ncols && print(io, " ")
+                end
+                r != nrows && print(io, "; ")
+            end
+        end
+        print(io, '}')
+
     # function declaration (like :call but always printed with parens)
     # (:calldecl is a "fake" expr node created when we find a :function expr)
     elseif head == :calldecl && nargs >= 1
