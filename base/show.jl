@@ -655,7 +655,10 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
 
     elseif head === :break || head === :continue
         print(io, head)
-    
+
+    elseif head === :using || head === :import || head === :importall
+        print(io, head, " ", join(args, "."))
+
     # print anything else as "Expr(head, args...)"
     else
         ccall(:jl_, Void, (Any,), ex)
