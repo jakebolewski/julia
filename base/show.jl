@@ -242,8 +242,10 @@ show_unquoted(io::IO, ex, ::Int,::Int) = show(io, ex)
 const indent_width = 4
 const quoted_syms = Set{Symbol}([:(:),:(::),:(:=),:(=),:(==),:(===),:(=>)])
 const uni_ops = Set{Symbol}([:(+), :(-), :(!), :(¬), :(~), :(<:), :(>:), :(√), :(∛), :(∜)])
-const expr_infix_wide = Set{Symbol}([:(=), :(+=), :(-=), :(*=), :(/=), :(\=), :(&=),
-                                     :(|=), :($=), :(>>>=), :(>>=), :(<<=), :(&&), :(||), :(%=), :(in)])
+const expr_infix_wide = Set{Symbol}([:(=), :(+=), :(.+=), :(-=), :(*=), 
+                                     :(.*=), :(/=), :(./=), :(\=), :(.\=), :(&=),
+                                     :(//=), :(^=), :(.^=), :(|=), :($=), :(>>>=),
+                                     :(>>=), :(<<=), :(&&), :(||), :(%=), :(.%=), :(in)])
 const expr_infix = Set([:(:), :(<:), :(->), :(=>), symbol("::")])
 const expr_calls  = [:call =>('(',')'), :calldecl =>('(',')'), :ref =>('[',']'), :curly =>('{','}')]
 const expr_callconv = Set{Symbol}([:stdcall, :cdecl, :fastcall, :thiscall])
@@ -319,6 +321,9 @@ function show_block(io::IO, head, args::Vector, body, indent::Int, newlines::Int
     show_list(io, args, ", ", indent)
     ind = is(head, :module) ? indent : indent + indent_width
     exs = (is_expr(body, :block) || is_expr(body, :body)) ? body.args : {body}
+    #TODO: remove
+    newlines < 1 && (newlines = 1)
+    indent < 1 && (indent = 1)
     for ex in exs
         !is_linenumber(ex) && print(io, "\n"^newlines, " "^ind)
         show_unquoted(io, ex, ind)
