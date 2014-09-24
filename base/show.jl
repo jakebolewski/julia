@@ -243,8 +243,8 @@ const indent_width = 4
 const quoted_syms = Set{Symbol}([:(:),:(::),:(:=),:(=),:(==),:(===),:(=>)])
 const uni_ops = Set{Symbol}([:(+), :(-), :(!), :(¬), :(~), :(<:), :(>:), :(√), :(∛), :(∜)])
 const expr_infix_wide = Set{Symbol}([:(=), :(+=), :(-=), :(*=), :(/=), :(\=), :(&=),
-                                     :(|=), :($=), :(>>>=), :(>>=), :(<<=), :(&&), :(||), :(%=)])
-const expr_infix = Set([:(:), :(<:), :(->), :(=>), symbol("::"), :in])
+                                     :(|=), :($=), :(>>>=), :(>>=), :(<<=), :(&&), :(||), :(%=), :(in)])
+const expr_infix = Set([:(:), :(<:), :(->), :(=>), symbol("::")])
 const expr_calls  = [:call =>('(',')'), :calldecl =>('(',')'), :ref =>('[',']'), :curly =>('{','}')]
 const expr_callconv = Set{Symbol}([:stdcall, :cdecl, :fastcall, :thiscall])
 const expr_parens = [:tuple=>('(',')'), :vcat=>('[',']'), :typed_vcat=>('[',']'), :cell1d=>('{','}'),
