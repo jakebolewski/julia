@@ -402,8 +402,6 @@ function show_unquoted_quote_expr(io::IO, value, indent::Int, prec::Int)
     end
 end
 
-
-# TODO: implement interpolated strings
 function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
     head, args, nargs = ex.head, ex.args, length(ex.args)
 
@@ -472,7 +470,7 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
 
     # function declaration (like :call but always printed with parens)
     # (:calldecl is a "fake" expr node created when we find a :function expr)
-    elseif head == :calldecl && nargs >= 1
+    elseif head === :calldecl && nargs >= 1
         show_call(io, head, args[1], args[2:end], indent)
         
     # function call
@@ -540,12 +538,17 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
         end
         print(io, ']')
 
-    elseif is(head, :ccall)
+    # ccall
+    elseif head === :ccall
         show_unquoted(io, :ccall, indent)
         show_enclosed_list(io, '(', args, ",", ')', indent)
 
+    # ccall calling conventions
+    elseif head in expr_callconv
+        print(io, head)
+
     # comparison (i.e. "x < y < z")
-    elseif is(head, :comparison) && nargs >= 3 && (nargs&1==1)
+    elseif head === :comparison && nargs >= 3 && (nargs&1==1)
         comp_prec = minimum(operator_precedence, args[2:2:end])
         if comp_prec <= prec
             show_enclosed_list(io, '(', args, " ", ')', indent, comp_prec)
@@ -567,16 +570,16 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
         show_block(io, head, args[1], args[2], indent); print(io, "end")
 
     # type declaration
-    elseif is(head, :type) && nargs==3
+    elseif head === :type && nargs==3
         show_block(io, ifelse(args[1], :type, :immutable), args[2], args[3], indent)
         print(io, "end")
 
     # empty return (i.e. "function f() return end")
-    elseif is(head, :return) && nargs == 1 && is(args[1], nothing)
+    elseif head === :return && nargs == 1 && is(args[1], nothing)
         print(io, head)
 
     # type annotation (i.e. "::Int")
-    elseif is(head, symbol("::")) && nargs == 1
+    elseif head === symbol("::") && nargs == 1
         print(io, "::")
         show_unquoted(io, args[1], indent)
 
@@ -591,7 +594,7 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
         print(io, head, ' ')
         show_list(io, args, ", ", indent)
 
-    elseif is(head, :macrocall) && nargs >= 1
+    elseif head === :macrocall && nargs >= 1
         mstr = string(args[1])
         if nargs == 2 && endswith(mstr, "_str") && isa(args[2], String)
             s1, s2 = 2, searchindex(mstr, "_str") - 1
@@ -599,22 +602,22 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
             show_unquoted(io, msym, indent)
             show_unquoted(io, args[2], indent)
         else
-            show_list(io, args, ' ', indent)
+            show_list(io, args, " ", indent)
         end
 
-    elseif is(head, :typealias) && nargs == 2
+    elseif head === :typealias && nargs == 2
         print(io, "typealias ")
-        show_list(io, args, ' ', indent)
+        show_list(io, args, " ", indent)
 
-    elseif is(head, :line) && 1 <= nargs <= 2
+    elseif head === :line && 1 <= nargs <= 2
         show_linenumber(io, args...)
 
-    elseif is(head, :if) && nargs == 3     # if/else
+    elseif head === :if && nargs == 3     # if/else
         show_block(io, "if",   args[1], args[2], indent)
         show_block(io, "else", args[3], indent)
         print(io, "end")
 
-    elseif is(head, :try) && 3 <= nargs <= 4
+    elseif head === :try && 3 <= nargs <= 4
         show_block(io, "try", args[1], indent)
         if is_expr(args[3], :block)
             show_block(io, "catch", is(args[2], false) ? Any[] : args[2], args[3], indent)
@@ -624,33 +627,33 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
         end
         print(io, "end")
 
-    elseif is(head, :let) && nargs >= 1
+    elseif head === :let && nargs >= 1
         show_block(io, "let", args[2:end], args[1], indent)
         print(io, "end")
 
-    elseif is(head, :block) || is(head, :body)
+    elseif head === :block || head === :body
         show_block(io, "begin", ex, indent)
         print(io, "end")
 
-    elseif is(head, :quote) && nargs == 1
+    elseif head === :quote && nargs == 1
         show_unquoted_quote_expr(io, args[1], indent, 0)
 
-    elseif is(head, :gotoifnot) && nargs == 2
+    elseif head === :gotoifnot && nargs == 2
         print(io, "unless ")
         show_list(io, args, " goto ", indent)
 
-    elseif is(head, :string) && nargs == 1 && isa(args[1], String)
+    elseif head === :string && nargs == 1 && isa(args[1], String)
         show(io, args[1])
 
-    elseif is(head, :null)
+    elseif head === :null
         print(io, "nothing")
 
-    elseif is(head, :kw) && length(args)==2
+    elseif head === :kw && length(args)==2
         show_unquoted(io, args[1], indent+indent_width)
         print(io, '=')
         show_unquoted(io, args[2], indent+indent_width)
 
-    elseif is(head, :string)
+    elseif head === :string
         a = map(args) do x
             if !isa(x,String)
                 if isa(x,Symbol) && !(x in quoted_syms)
@@ -673,17 +676,14 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
         show_unquoted(io, args[1])
         print(io, head)
     
-    elseif head in expr_callconv
-        print(io, head)
-
     elseif head === :break || head === :continue
         print(io, head)
-
-    elseif head === :using || head === :import || head === :importall
-        print(io, head, " ", join(args, "."))
     
-    elseif head === :export
-        print(io, head, " ", join(args, ","))
+    elseif head === :using || head === :import || head === :importall && nargs > 0
+        print(io, head, ' '); show_list(io, args, ".", indent)
+
+    elseif head === :export && nargs > 0
+        print(io, head, ' '); show_list(io, args, ", ", indent)
 
     # print anything else as "Expr(head, args...)"
     else
