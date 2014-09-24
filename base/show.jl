@@ -468,7 +468,12 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
         if nargs > 0
             for r = 1:nrows
                 for c = 1:ncols
-                    print(io, args[2 + r + (c-1) * nrows])
+                    arg = args[2 + r + (c - 1) * nrows]
+                    if isa(arg, Expr)
+                        print(io, '('); show_unquoted(io, arg); print(io, ')')
+                    else
+                        show_unquoted(io, arg)
+                    end
                     c != ncols && print(io, " ")
                 end
                 r != nrows && print(io, "; ")
@@ -632,7 +637,11 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
     # type annotation (i.e. "::Int")
     elseif head === symbol("::") && nargs == 1
         print(io, "::")
-        show_unquoted(io, args[1], indent)
+        if isa(args[1], Expr)
+            print(io, '('); show_unquoted(io, args[1]); print(io, ')')
+        else
+            show_unquoted(io, args[1])
+        end
 
     # var-arg declaration or expansion
     # (i.e. "function f(L...) end" or "f(B...)")
@@ -724,11 +733,19 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
 
     elseif head === :& || head === :$ && length(args) == 1
         print(io, head)
-        show_unquoted(io, args[1])
+        if isa(args[1], Expr)
+            print(io, '('); show_unquoted(io, args[1]); print(io, ')')
+        else
+            show_unquoted(io, args[1])
+        end
 
     # transpose
     elseif head === symbol("'") || head === symbol(".'") && length(args) == 1
-        show_unquoted(io, args[1])
+        if isa(args[1], Expr)
+            print(io, '('); show_unquoted(io, args[1]); print(io, ')')
+        else
+            show_unquoted(io, args[1])
+        end
         print(io, head)
     
     elseif head === :break || head === :continue
