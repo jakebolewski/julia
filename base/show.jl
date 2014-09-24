@@ -609,6 +609,10 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
         print(io, "typealias ")
         show_list(io, args, " ", indent)
 
+    elseif head === :bitstype && nargs > 0
+        print(io, "bitstype ")
+        show_list(io, args, " ", indent)
+
     elseif head === :line && 1 <= nargs <= 2
         show_linenumber(io, args...)
 
