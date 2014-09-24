@@ -446,6 +446,8 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
         op, cl = expr_parens[head]
         if head === :vcat && nargs > 0 && is_expr(args[1], :row)
             sep = ";"
+        elseif head === :typed_vcat && nargs > 1 && is_expr(args[2], :row)
+            sep = ";"
         elseif head === :hcat || head === :typed_hcat || head === :row
             sep = " "
         else
