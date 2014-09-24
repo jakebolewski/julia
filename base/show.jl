@@ -592,7 +592,15 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
         show_list(io, args, ", ", indent)
 
     elseif is(head, :macrocall) && nargs >= 1
-        show_list(io, args, ' ', indent)
+        mstr = string(args[1])
+        if nargs == 2 && endswith(mstr, "_str") && isa(args[2], String)
+            s1, s2 = 2, searchindex(mstr, "_str") - 1
+            msym = symbol(mstr[s1:s2])
+            show_unquoted(io, msym, indent)
+            show_unquoted(io, args[2], indent)
+        else
+            show_list(io, args, ' ', indent)
+        end
 
     elseif is(head, :typealias) && nargs == 2
         print(io, "typealias ")
