@@ -740,11 +740,20 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
     elseif head === :export && nargs > 0
         print(io, head, ' '); show_list(io, args, ", ", indent)
 
+    elseif head === :toplevel && nargs > 0 && args[1].head in (:import, :using)
+        print(io, args[1].head, " ")
+        print(io, join(args[1].args[1:end-1], "."), ":")
+        imports = Symbol[args[i].args[end] for i = 1:nargs]
+        show_list(io, imports, ",", indent)
+
+    elseif head === :module || head === :macro
+
     # print anything else as "Expr(head, args...)"
     else
-        ccall(:jl_, Void, (Any,), ex)
-        println()
- 
+        if head !== :module || head !== :macro
+            ccall(:jl_, Void, (Any,), ex)
+            println()
+        end
     end
 
     show_expr_type(io, ex.typ)
