@@ -742,9 +742,9 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
     # transpose
     elseif head === symbol("'") || head === symbol(".'") && length(args) == 1
         if isa(args[1], Expr)
-            print(io, '('); show_unquoted(io, args[1]); print(io, ')')
+            print(io, '('); show_unquoted(io, args[1], indent); print(io, ')')
         else
-            show_unquoted(io, args[1])
+            show_unquoted(io, args[1], indent)
         end
         print(io, head)
     
@@ -763,11 +763,19 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
         imports = Symbol[args[i].args[end] for i = 1:nargs]
         show_list(io, imports, ",", indent)
 
-    elseif head === :module || head === :macro
+    elseif head === :module && nargs == 3
+        isbare = !(args[1])
+        if isbare
+            show_block(io, string("baremodule ", args[2]), args[3], indent)
+        else
+            # don't show module eval
+            show_block(io, string("module ", args[2]), args[3].args[3:end], indent)
+        end
+        print(io, "end")
 
     # print anything else as "Expr(head, args...)"
     else
-        if head !== :module || head !== :macro
+        if head !== :macro
             ccall(:jl_, Void, (Any,), ex)
             println()
         end
