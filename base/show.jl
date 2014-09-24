@@ -286,6 +286,14 @@ is_quoted(ex::Expr)      = is_expr(ex, :quote, 1)
 unquoted(ex::QuoteNode)  = ex.value
 unquoted(ex::Expr)       = ex.args[1]
 
+function is_any_dicttyp(ex::Expr)
+    length(ex.args) != 2 && return false
+    typk, typv = ex.args
+    return ex.head === :(=>) && 
+           (typk === Any || typk === TopNode(:Any)) &&
+           (typv === Any || typv === TopNode(:Any))
+end
+
 ## AST printing helpers ##
 
 const indent_width = 4
@@ -468,23 +476,21 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
         end
         print(io, '}')
 
-    elseif head === :typed_dict || head === :dict && nargs > 1
+    elseif head === :typed_dict || head === :dict
         local op::Char, cl::Char
         if head === :typed_dict
-            typk, typv = args[1].args
-            if (typk === Any || typk === TopNode(:Any)) &&
-               (typv === Any || typv === TopNode(:Any))
+            if is_any_dicttyp(ex.args[1])
                 op, cl = '{', '}'
             else
                 op, cl = '[',']'
                 print(io, '('); show_unquoted(io, args[1], indent); print(io, ')')
             end
             print(io, op)
-            show_list(io, args[2:end], ",", indent)
+            nargs > 0 && show_list(io, args[2:end], ",", indent)
         else
             op, cl = '[', ']'
             print(io, op)
-            show_list(io, args, ",", indent)
+            nargs > 0 && show_list(io, args, ",", indent)
         end
         print(io, cl)
 
@@ -541,8 +547,8 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
         end
 
     # typed / untyped comprehension
-    elseif head === :comprehension || head === :typed_comprehension && length(args) >= 2
-        i, nargs = 1, length(args)
+    elseif head === :comprehension || head === :typed_comprehension && nargs >= 2
+        i = 1
         if head === :typed_comprehension
             show_unquoted(io, args[i], indent)
             i += 1
@@ -551,13 +557,38 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
         show_unquoted(io, args[i], indent)
         i += 1
         print(io, " for ")
-        for arg in args[i:end]
+        while i <= nargs
             show_unquoted(io, args[i], indent)
             i < nargs && print(io, ", ")
             i += 1
         end
         print(io, ']')
-
+    
+    # typed / untyped dict comprehension
+    elseif head === :dict_comprehension || head === :typed_dict_comprehension && nargs > 2
+        i = 1
+        if head === :typed_dict_comprehension
+            if is_any_dicttyp(ex.args[i])
+                op, cl = '{', '}'
+            else
+                op, cl = '[',']'
+                print(io, '('); show_unquoted(io, args[i], indent); print(io, ')')
+            end
+            i += 1
+        else
+            op, cl = '[', ']'
+        end
+        print(io, op)
+        show_unquoted(io, args[i])
+        i += 1
+        print(io, " for ")
+        while i <= nargs
+            show_unquoted(io, args[i], indent)
+            i < nargs && print(io, ", ")
+            i += 1
+        end
+        print(io, cl)
+ 
     # ccall
     elseif head === :ccall
         show_unquoted(io, :ccall, indent)
