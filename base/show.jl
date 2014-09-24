@@ -468,6 +468,26 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
         end
         print(io, '}')
 
+    elseif head === :typed_dict || head === :dict && nargs > 1
+        local op::Char, cl::Char
+        if head === :typed_dict
+            typk, typv = args[1].args
+            if (typk === Any || typk === TopNode(:Any)) &&
+               (typv === Any || typv === TopNode(:Any))
+                op, cl = '{', '}'
+            else
+                op, cl = '[',']'
+                print(io, '('); show_unquoted(io, args[1], indent); print(io, ')')
+            end
+            print(io, op)
+            show_list(io, args[2:end], ",", indent)
+        else
+            op, cl = '[', ']'
+            print(io, op)
+            show_list(io, args, ",", indent)
+        end
+        print(io, cl)
+
     # function declaration (like :call but always printed with parens)
     # (:calldecl is a "fake" expr node created when we find a :function expr)
     elseif head === :calldecl && nargs >= 1
