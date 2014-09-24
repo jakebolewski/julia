@@ -314,24 +314,23 @@ show_linenumber(io::IO, line)       = print(io," # line ",line,':')
 show_linenumber(io::IO, line, file) = print(io," # ",file,", line ",line,':')
 
 # show a block, e g if/for/etc
-function show_block(io::IO, head, args::Vector, body, indent::Int)
+function show_block(io::IO, head, args::Vector, body, indent::Int, newlines::Int=1)
     print(io, head, ' ')
     show_list(io, args, ", ", indent)
-
     ind = is(head, :module) ? indent : indent + indent_width
     exs = (is_expr(body, :block) || is_expr(body, :body)) ? body.args : {body}
     for ex in exs
-        if !is_linenumber(ex); print(io, '\n', " "^ind); end
+        !is_linenumber(ex) && print(io, "\n"^newlines, " "^ind)
         show_unquoted(io, ex, ind)
     end
     print(io, '\n', " "^indent)
 end
-show_block(io::IO,head,    block,i::Int) = show_block(io,head,{},   block,i)
-function show_block(io::IO, head, arg, block, i::Int)
+show_block(io::IO, head, block, i::Int, nl::Int=1) = show_block(io, head, {}, block, i, nl)
+show_block(io::IO, head, arg, block, i::Int, nl::Int=1) = begin
     if is_expr(arg, :block)
-        show_block(io, head, arg.args, block, i)
+        show_block(io, head, arg.args, block, i, nl)
     else
-        show_block(io, head, {arg}, block, i)
+        show_block(io, head, {arg}, block, i, nl) 
     end
 end
 
@@ -766,10 +765,11 @@ function show_unquoted(io::IO, ex::Expr, indent::Int, prec::Int)
     elseif head === :module && nargs == 3
         isbare = !(args[1])
         if isbare
-            show_block(io, string("baremodule ", args[2]), args[3], indent)
+            show_block(io, string("baremodule ", args[2]), args[3], indent, 2)
         else
             # don't show module eval
-            show_block(io, string("module ", args[2]), args[3].args[3:end], indent)
+            blk = Expr(:block); blk.args = args[3].args[3:end]
+            show_block(io, string("module ", args[2]), blk, indent, 2)
         end
         print(io, "end")
 
