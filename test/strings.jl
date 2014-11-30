@@ -680,7 +680,7 @@ slen_u8str2 = length(u8str2)
 @test len_u8str2 == 2 * len_u8str
 @test slen_u8str2 == 2 * slen_u8str
 
-u8str2plain = utf8(u8str2)
+u8str2plain = UTF8String(u8str2)
 
 for i1 = 1:length(u8str2)
     if !isvalid(u8str2, i1); continue; end
@@ -853,7 +853,7 @@ bin_val = hex2bytes("07bf")
 @test sizeof(RopeString("abc","def")) == 6
 
 # issue #3597
-@test string(utf32(['T', 'e', 's', 't'])[1:1], "X") == "TX"
+@test string(UTF32String(['T', 'e', 's', 't'])[1:1], "X") == "TX"
 
 # issue #3710
 @test prevind(SubString("{var}",2,4),4) == 3
@@ -910,7 +910,7 @@ bin_val = hex2bytes("07bf")
 
 # issue #4183
 @test split(SubString(ascii("x"), 2, 0), "y") == AbstractString[""]
-@test split(SubString(utf8("x"), 2, 0), "y") == AbstractString[""]
+@test split(SubString(UTF8String("x"), 2, 0), "y") == AbstractString[""]
 
 # issue #4586
 @test rsplit(RevString("ailuj"),'l') == ["ju","ia"]
@@ -1071,7 +1071,7 @@ let s="lorem ipsum",
 end #let
 
 #for isvalid(SubString{UTF8String})
-let s = utf8("Σx + βz - 2")
+let s = UTF8String("Σx + βz - 2")
   for i in -1:length(s)+2
       ss=SubString(s,1,i)
       @test isvalid(ss,i)==isvalid(s,i)

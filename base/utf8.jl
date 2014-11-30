@@ -157,7 +157,6 @@ write(io::IO, s::UTF8String) = write(io, s.data)
 
 ## transcoding to UTF-8 ##
 
-utf8(x) = convert(UTF8String, x)
 convert(::Type{UTF8String}, s::UTF8String) = s
 convert(::Type{UTF8String}, s::ASCIIString) = UTF8String(s.data)
 convert(::Type{UTF8String}, a::Array{UInt8,1}) = is_valid_utf8(a) ? UTF8String(a) : error("invalid UTF-8 sequence")
@@ -182,7 +181,7 @@ function convert(::Type{UTF8String}, a::Array{UInt8,1}, invalids_as::AbstractStr
     end
     UTF8String(a)
 end
-convert(::Type{UTF8String}, s::AbstractString) = utf8(bytestring(s))
+convert(::Type{UTF8String}, s::AbstractString) = UTF8String(bytestring(s))
 
 # The last case is the replacement character 0xfffd (3 bytes)
 utf8sizeof(c::Char) = c < char(0x80) ? 1 : c < char(0x800) ? 2 : c < char(0x10000) ? 3 : c < char(0x110000) ? 4 : 3

@@ -1,27 +1,29 @@
 # UTF16
 u8 = "\U1d565\U1d7f6\U00066\U2008a"
-u16 = utf16(u8)
+u16 = UTF16String(u8)
 @test sizeof(u16) == 14
 @test length(u16.data) == 8 && u16.data[end] == 0
 @test length(u16) == 4
-@test utf8(u16) == u8
+@test UTF8String(u16) == u8
 @test collect(u8) == collect(u16)
-@test u8 == utf16(u16.data[1:end-1]) == utf16(copy!(Array(UInt8, 14), 1, reinterpret(UInt8, u16.data), 1, 14))
-@test u8 == utf16(pointer(u16)) == utf16(convert(Ptr{Int16}, pointer(u16)))
+@test u8 == UTF16String(u16.data[1:end-1]) == UTF16String(copy!(Array(UInt8, 14), 1,
+                                                                reinterpret(UInt8, u16.data), 1, 14))
+@test u8 == UTF16String(pointer(u16)) == UTF16String(convert(Ptr{Int16}, pointer(u16)))
 
 # UTF32
-u32 = utf32(u8)
+u32 = UTF32String(u8)
 @test sizeof(u32) == 16
 @test length(u32.data) == 5 && u32.data[end] == char(0)
 @test length(u32) == 4
-@test utf8(u32) == u8
+@test UTF8String(u32) == u8
 @test collect(u8) == collect(u32)
-@test u8 == utf32(u32.data[1:end-1]) == utf32(copy!(Array(UInt8, 16), 1, reinterpret(UInt8, u32.data), 1, 16))
-@test u8 == utf32(pointer(u32)) == utf32(convert(Ptr{Int32}, pointer(u32)))
+@test u8 == UTF32String(u32.data[1:end-1]) == UTF32String(copy!(Array(UInt8, 16), 1,
+                                                                reinterpret(UInt8, u32.data), 1, 16))
+@test u8 == UTF32String(pointer(u32)) == UTF32String(convert(Ptr{Int32}, pointer(u32)))
 
 # Wstring
 w = wstring(u8)
-@test length(w) == 4 && utf8(w) == u8 && collect(u8) == collect(w)
+@test length(w) == 4 && UTF8String(w) == u8 && collect(u8) == collect(w)
 @test u8 == WString(w.data)
 
 if !success(`iconv --version`)
@@ -50,7 +52,7 @@ else
     end
 
     f=open(joinpath(unicodedir,"UTF-32LE.unicode"))
-    str1 = utf32(read(f, UInt32, 1112065)[2:end])
+    str1 = UTF32String(read(f, UInt32, 1112065)[2:end])
     close(f)
 
     f=open(joinpath(unicodedir,"UTF-8.unicode"))
@@ -59,25 +61,25 @@ else
     @test str1 == str2
 
     @test str1 == open(joinpath(unicodedir,"UTF-16LE.unicode")) do f
-        utf16(read(f, UInt16, 2160641)[2:end])
+        UTF16String(read(f, UInt16, 2160641)[2:end])
     end
 
     @test str1 == open(joinpath(unicodedir,"UTF-16LE.unicode")) do f
-        utf16(read(f, UInt8, 2160641*2))
+        UTF16String(read(f, UInt8, 2160641*2))
     end
     @test str1 == open(joinpath(unicodedir,"UTF-16BE.unicode")) do f
-        utf16(read(f, UInt8, 2160641*2))
+        UTF16String(read(f, UInt8, 2160641*2))
     end
 
     @test str1 == open(joinpath(unicodedir,"UTF-32LE.unicode")) do f
-        utf32(read(f, UInt8, 1112065*4))
+        UTF32String(read(f, UInt8, 1112065*4))
     end
     @test str1 == open(joinpath(unicodedir,"UTF-32BE.unicode")) do f
-        utf32(read(f, UInt8, 1112065*4))
+        UTF32String(read(f, UInt8, 1112065*4))
     end
 
     str1 = "∀ ε > 0, ∃ δ > 0: |x-y| < δ ⇒ |f(x)-f(y)| < ε"
-    str2 = utf32(
+    str2 = UTF32String(
                  8704, 32, 949, 32, 62, 32, 48, 44, 32, 8707, 32,
                  948, 32, 62, 32, 48, 58, 32, 124, 120, 45, 121, 124,
                  32, 60, 32, 948, 32, 8658, 32, 124, 102, 40, 120,

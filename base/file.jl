@@ -36,7 +36,7 @@ cd(f::Function) = cd(f, homedir())
 
 function mkdir(path::AbstractString, mode::Unsigned=0o777)
     @unix_only ret = ccall(:mkdir, Int32, (Ptr{UInt8},UInt32), path, mode)
-    @windows_only ret = ccall(:_wmkdir, Int32, (Ptr{UInt16},), utf16(path))
+    @windows_only ret = ccall(:_wmkdir, Int32, (Ptr{UInt16},), UTF16String(path))
     systemerror(:mkdir, ret != 0)
 end
 
@@ -62,7 +62,7 @@ function rm(path::AbstractString; recursive::Bool=false)
             end
         end
         @unix_only ret = ccall(:rmdir, Int32, (Ptr{UInt8},), path)
-        @windows_only ret = ccall(:_wrmdir, Int32, (Ptr{UInt16},), utf16(path))
+        @windows_only ret = ccall(:_wrmdir, Int32, (Ptr{UInt16},), UTF16String(path))
         systemerror(:rmdir, ret != 0)
     end
 end
@@ -121,19 +121,20 @@ function tempdir()
         error("GetTempPath failed: $(FormatMessage())")
     end
     resize!(temppath,lentemppath+1)
-    return utf8(UTF16String(temppath))
+    return UTF8String(UTF16String(temppath))
 end
 tempname(uunique::UInt32=uint32(0)) = tempname(tempdir(), uunique)
 function tempname(temppath::AbstractString,uunique::UInt32)
     tname = Array(UInt16,32767)
-    uunique = ccall(:GetTempFileNameW,stdcall,UInt32,(Ptr{UInt16},Ptr{UInt16},UInt32,Ptr{UInt16}),
-        utf16(temppath),utf16("jul"),uunique,tname)
+    uunique = ccall(:GetTempFileNameW,stdcall,UInt32,
+                    (Ptr{UInt16},Ptr{UInt16},UInt32,Ptr{UInt16}),
+                    UTF16String(temppath), UTF16String("jul"), uunique, tname)
     lentname = findfirst(tname,0)-1
     if uunique == 0 || lentname <= 0
         error("GetTempFileName failed: $(FormatMessage())")
     end
     resize!(tname,lentname+1)
-    return utf8(UTF16String(tname))
+    return UTF8String(UTF16String(tname))
 end
 function mktemp()
     filename = tempname()
@@ -147,7 +148,7 @@ function mktempdir()
             seed += 1
         end
         filename = tempname(dir, seed)
-        ret = ccall(:_wmkdir, Int32, (Ptr{UInt16},), utf16(filename))
+        ret = ccall(:_wmkdir, Int32, (Ptr{UInt16},), UTF16String(filename))
         if ret == 0
             return filename
         end

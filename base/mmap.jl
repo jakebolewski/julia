@@ -138,7 +138,7 @@ function mmap_array{T,N}(::Type{T}, dims::NTuple{N,Integer}, s::Union(IO,SharedM
     else
         # shared memory
         hdl = -1
-        name = utf16(s.name)
+        name = UTF16String(s.name)
         ro = s.readonly
         create = s.create
     end

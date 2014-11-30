@@ -18,17 +18,17 @@ function FormatMessage(e=GetLastError())
         FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_MAX_WIDTH_MASK,
         C_NULL, e, 0, lpMsgBuf, 0, C_NULL)
     p = lpMsgBuf[1]
-    len == 0 && return utf8("")
+    len == 0 && return UTF8String("")
     len = len + 1
     buf = Array(UInt16, len)
     unsafe_copy!(pointer(buf), p, len)
     ccall(:LocalFree,stdcall,Ptr{Void},(Ptr{Void},),p)
-    return utf8(UTF16String(buf))
+    return UTF8String(UTF16String(buf))
 end
 
-_getenvlen(var::UTF16String) = ccall(:GetEnvironmentVariableW,stdcall,UInt32,(Ptr{UInt16},Ptr{UInt8},UInt32),utf16(var),C_NULL,0)
+_getenvlen(var::UTF16String) = ccall(:GetEnvironmentVariableW,stdcall,UInt32,(Ptr{UInt16},Ptr{UInt8},UInt32), UTF16String(var),C_NULL,0)
 _hasenv(s::UTF16String) = _getenvlen(s)!=0 || GetLastError()!=ERROR_ENVVAR_NOT_FOUND
-_hasenv(s::AbstractString) = _hasenv(utf16(s))
+_hasenv(s::AbstractString) = _hasenv(UTF16String(s))
 function _jl_win_getenv(s::UTF16String,len::UInt32)
     val=zeros(UInt16,len)
     ret=ccall(:GetEnvironmentVariableW,stdcall,UInt32,(Ptr{UInt16},Ptr{UInt16},UInt32),s,val,len)
@@ -48,16 +48,16 @@ macro accessEnv(var,errorcase)
          bytestring(val)
     end
     @windows_only return quote
-        let var = utf16($(esc(var)))
+        let var = UTF16String($(esc(var)))
             len=_getenvlen(var)
             if len == 0
                 if GetLastError() != ERROR_ENVVAR_NOT_FOUND
-                    return utf8("")
+                    return UTF8String("")
                 else
                     $(esc(errorcase))
                 end
             end
-            utf8(UTF16String(_jl_win_getenv(var,len)))
+            UTF8String(UTF16String(_jl_win_getenv(var,len)))
         end
     end
 end
@@ -68,9 +68,10 @@ function _setenv(var::AbstractString, val::AbstractString, overwrite::Bool)
         systemerror(:setenv, ret != 0)
     end
     @windows_only begin
-        var = utf16(var)
+        var = UTF16String(var)
         if overwrite || !_hasenv(var)
-            ret = ccall(:SetEnvironmentVariableW,stdcall,Int32,(Ptr{UInt16},Ptr{UInt16}),utf16(var),utf16(val))
+            ret = ccall(:SetEnvironmentVariableW,stdcall,Int32,
+                         (Ptr{UInt16},Ptr{UInt16}), UTF16String(var), UTF16String(val))
             systemerror(:setenv, ret == 0)
         end
     end
@@ -84,7 +85,8 @@ function _unsetenv(var::AbstractString)
         systemerror(:unsetenv, ret != 0)
     end
     @windows_only begin
-        ret = ccall(:SetEnvironmentVariableW,stdcall,Int32,(Ptr{UInt16},Ptr{UInt16}),utf16(var),C_NULL)
+        ret = ccall(:SetEnvironmentVariableW,stdcall,Int32,
+                    (Ptr{UInt16},Ptr{UInt16}), UTF16String(var), C_NULL)
         systemerror(:setenv, ret == 0)
     end
 end
@@ -146,7 +148,7 @@ function next(hash::EnvHash, block::(Ptr{UInt16},Ptr{UInt16}))
     len = ccall(:wcslen, UInt, (Ptr{UInt16},), pos)+1
     buf = Array(UInt16, len)
     unsafe_copy!(pointer(buf), pos, len)
-    env = utf8(UTF16String(buf))
+    env = UTF8String(UTF16String(buf))
     m = match(r"^(=?[^=]+)=(.*)$"s, env)
     if m == nothing
         error("malformed environment entry: $env")

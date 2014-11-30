@@ -317,11 +317,11 @@ Invalid history format. If you have a ~/.julia_history file left over from an ol
 
 function hist_getline(file)
     while !eof(file)
-        line = utf8(readline(file))
+        line = UTF8String(readline(file))
         isempty(line) && return line
         line[1] in "\r\n" || return line
     end
-    return utf8("")
+    return UTF8String("")
 end
 
 function hist_from_file(hp, file)

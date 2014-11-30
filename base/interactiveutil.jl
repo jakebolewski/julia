@@ -109,7 +109,7 @@ end
     function clipboard(x::AbstractString)
         systemerror(:OpenClipboard, 0==ccall((:OpenClipboard, "user32"), stdcall, Cint, (Ptr{Void},), C_NULL))
         systemerror(:EmptyClipboard, 0==ccall((:EmptyClipboard, "user32"), stdcall, Cint, ()))
-        x_u16 = utf16(x)
+        x_u16 = UTF16String(x)
         # copy data to locked, allocated space
         p = ccall((:GlobalAlloc, "kernel32"), stdcall, Ptr{UInt16}, (UInt16, Int32), 2, sizeof(x_u16)+2)
         systemerror(:GlobalAlloc, p==C_NULL)
@@ -130,7 +130,7 @@ end
         systemerror(:CloseClipboard, 0==ccall((:CloseClipboard, "user32"), stdcall, Cint, ()))
         plock = ccall((:GlobalLock, "kernel32"), stdcall, Ptr{UInt16}, (Ptr{UInt16},), pdata)
         systemerror(:GlobalLock, plock==C_NULL)
-        s = utf8(utf16(plock))
+        s = UTF8String(UTF16String(plock))
         systemerror(:GlobalUnlock, 0==ccall((:GlobalUnlock, "kernel32"), stdcall, Cint, (Ptr{UInt16},), plock))
         return s
     end
@@ -337,7 +337,8 @@ end
 
 @windows_only function download(url::AbstractString, filename::AbstractString)
     res = ccall((:URLDownloadToFileW,:urlmon),stdcall,Cuint,
-                (Ptr{Void},Ptr{UInt16},Ptr{UInt16},Cint,Ptr{Void}),0,utf16(url),utf16(filename),0,0)
+                (Ptr{Void},Ptr{UInt16},Ptr{UInt16},Cint,Ptr{Void}),
+                0,UTF16String(url),UTF16String(filename),0,0)
     if res != 0
         error("automatic download failed (error: $res): $url")
     end

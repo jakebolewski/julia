@@ -106,7 +106,7 @@ normpath(a::AbstractString, b::AbstractString...) = normpath(joinpath(a,b...))
 abspath(a::AbstractString) = normpath(isabspath(a) ? a : joinpath(pwd(),a))
 abspath(a::AbstractString, b::AbstractString...) = abspath(joinpath(a,b...))
 
-@windows_only realpath(path::AbstractString) = realpath(utf16(path))
+@windows_only realpath(path::AbstractString) = realpath(UTF16String(path))
 @windows_only function realpath(path::UTF16String)
     p = uint32((sizeof(path)>>2) + 1)
     while true
@@ -118,7 +118,7 @@ abspath(a::AbstractString, b::AbstractString...) = abspath(joinpath(a,b...))
         systemerror(:realpath, p == 0)
         if (p < buflength)
             resize!(buf, p+1)
-            return utf8(UTF16String(buf))
+            return UTF8String(UTF16String(buf))
         end
     end
 end

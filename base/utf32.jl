@@ -10,12 +10,14 @@ immutable UTF32String <: DirectIndexString
         new(a)
     end
 end
-
-next(s::UTF32String, i::Int) = (s.data[i], i+1)
-endof(s::UTF32String) = length(s.data) - 1
-length(s::UTF32String) = length(s.data) - 1
-
-function utf32(c::Integer...)
+UTF32String(p::Ptr{Char}, len::Integer) = UTF32String(pointer_to_array(p, len))
+UTF32String(p::Union(Ptr{UInt32}, Ptr{Int32}), len::Integer) = UTF32String(convert(Ptr{Char}, p), len)
+UTF32String(p::Union(Ptr{Char}, Ptr{UInt32}, Ptr{Int32})) = begin
+    len = 0
+    while unsafe_load(p, len+1) != 0; len += 1; end
+    UTF32String(p, len)
+end
+UTF32String(c::Integer...) = begin
     a = Array(Char, length(c) + 1)
     for i = 1:length(c)
         a[i] = char(c[i])
@@ -24,7 +26,10 @@ function utf32(c::Integer...)
     UTF32String(a)
 end
 
-utf32(x) = convert(UTF32String, x)
+next(s::UTF32String, i::Int) = (s.data[i], i+1)
+endof(s::UTF32String) = length(s.data) - 1
+length(s::UTF32String) = length(s.data) - 1
+
 convert(::Type{UTF32String}, c::Char) = UTF32String(Char[c, char(0)])
 convert(::Type{UTF32String}, s::UTF32String) = s
 
@@ -48,7 +53,7 @@ end
 convert{T<:Union(Int32,UInt32)}(::Type{UTF32String}, data::AbstractVector{T}) =
     convert(UTF32String, reinterpret(Char, data))
 
-convert{T<:AbstractString}(::Type{T}, v::AbstractVector{Char}) = convert(T, utf32(v))
+convert{T<:AbstractString}(::Type{T}, v::AbstractVector{Char}) = convert(T, UTF32String(v))
 
 # specialize for performance reasons:
 function convert{T<:ByteString}(::Type{T}, data::AbstractVector{Char})
@@ -88,14 +93,6 @@ function convert(T::Type{UTF32String}, bytes::AbstractArray{UInt8})
     end
     d[end] = char(0) # NULL terminate
     UTF32String(d)
-end
-
-utf32(p::Ptr{Char}, len::Integer) = utf32(pointer_to_array(p, len))
-utf32(p::Union(Ptr{UInt32}, Ptr{Int32}), len::Integer) = utf32(convert(Ptr{Char}, p), len)
-function utf32(p::Union(Ptr{Char}, Ptr{UInt32}, Ptr{Int32}))
-    len = 0
-    while unsafe_load(p, len+1) != 0; len += 1; end
-    utf32(p, len)
 end
 
 function map(f::Function, s::UTF32String)

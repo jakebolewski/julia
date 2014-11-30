@@ -890,8 +890,6 @@ export
     ucfirst,
     unescape_string,
     uppercase,
-    utf8,
-    utf16,
     utf32,
     warn,
     wstring,

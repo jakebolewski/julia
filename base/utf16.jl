@@ -1,11 +1,21 @@
 immutable UTF16String <: AbstractString
     data::Array{UInt16,1} # includes 16-bit NULL termination after string chars
+
     function UTF16String(data::Vector{UInt16})
         if length(data) < 1 || data[end] != 0
             throw(ArgumentError("UTF16String data must be NULL-terminated"))
         end
         new(data)
     end
+end
+UTF16String(p::Ptr{UInt16}, len::Integer) = UTF16String(pointer_to_array(p, len))
+UTF16String(p::Ptr{Int16}, len::Integer)  = UTF16String(convert(Ptr{UInt16}, p), len)
+UTF16String(p::Union(Ptr{UInt16}, Ptr{Int16})) = begin
+    len = 0
+    while unsafe_load(p, len+1) != 0
+        len += 1
+    end
+    UTF16String(p, len)
 end
 
 utf16_is_lead(c::UInt16) = (c & 0xfc00) == 0xd800
@@ -44,7 +54,6 @@ function encode16(s::AbstractString)
     UTF16String(buf)
 end
 
-utf16(x) = convert(UTF16String, x)
 convert(::Type{UTF16String}, s::UTF16String) = s
 convert(::Type{UTF16String}, s::AbstractString) = encode16(s)
 convert(::Type{Array{UInt16,1}}, s::UTF16String) = s.data
@@ -109,12 +118,4 @@ function convert(T::Type{UTF16String}, bytes::AbstractArray{UInt8})
     d[end] = 0 # NULL terminate
     !is_valid_utf16(d) && throw(ArgumentError("invalid UTF16 data"))
     UTF16String(d)
-end
-
-utf16(p::Ptr{UInt16}, len::Integer) = utf16(pointer_to_array(p, len))
-utf16(p::Ptr{Int16}, len::Integer) = utf16(convert(Ptr{UInt16}, p), len)
-function utf16(p::Union(Ptr{UInt16}, Ptr{Int16}))
-    len = 0
-    while unsafe_load(p, len+1) != 0; len += 1; end
-    utf16(p, len)
 end

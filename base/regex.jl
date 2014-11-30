@@ -128,7 +128,7 @@ function match(re::Regex, str::UTF8String, idx::Integer, add_opts::UInt32=uint32
 end
 
 match(re::Regex, str::Union(ByteString,SubString), idx::Integer, add_opts::UInt32=uint32(0)) =
-    match(re, utf8(str), idx, add_opts)
+    match(re, UTF8String(str), idx, add_opts)
 
 match(r::Regex, s::AbstractString) = match(r, s, start(s))
 match(r::Regex, s::AbstractString, i::Integer) =
@@ -175,7 +175,7 @@ function matchall(re::Regex, str::UTF8String, overlap::Bool=false)
 end
 
 matchall(re::Regex, str::Union(ByteString,SubString), overlap::Bool=false) =
-    matchall(re, utf8(str), overlap)
+    matchall(re, UTF8String(str), overlap)
 
 function search(str::Union(ByteString,SubString), re::Regex, idx::Integer)
     if idx > nextind(str,endof(str))
