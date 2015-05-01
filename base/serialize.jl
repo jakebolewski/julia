@@ -49,7 +49,7 @@ function Base.getindex(l::LDict1, v::ANY)
     idx = Int32(2)
     ptr = pointer_from_objref(v)
     ptrs = l.ptrs
-    @inbounds for i = 1:length(ptrs)
+    @inbounds @simd for i = 1:length(ptrs)
         ptr == ptrs[i] && return idx
         idx += one(Int32)
     end
@@ -58,14 +58,13 @@ end
 function Base.haskey(l::LDict1, v::ANY)
     ptr = pointer_from_objref(v)
     ptrs = l.ptrs
-    @inbounds for i = 1:length(ptrs)
+    @inbounds @simd for i = 1:length(ptrs)
         ptr == ptrs[i] && return true
     end
     false
 end
 
-immutable LDict2
-end
+immutable LDict2 end
 Base.haskey(l::LDict2, i::Int32) = begin
     i > (length(TAGS)+1) && return false
     return true
@@ -76,6 +75,11 @@ const ser_version = 2 # do not make changes without bumping the version #!
 const ser_tag = LDict1() #ObjectIdDict()
 const deser_tag = LDict2()
 
+function __init__()
+    for i in 1:length(TAGS)
+        ser_tag.ptrs[i] = pointer_from_objref(TAGS[i])
+    end
+end
 #=
 let i = 2
     global deser_tag
