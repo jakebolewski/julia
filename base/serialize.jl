@@ -14,12 +14,7 @@ abstract LongTuple
 abstract LongExpr
 abstract UndefRefTag
 
-const ser_version = 2 # do not make changes without bumping the version #!
-const ser_tag = ObjectIdDict()
-const deser_tag = ObjectIdDict()
-let i = 2
-    global ser_tag, deser_tag
-    for t = Any[
+const TAGS = Any[
              Symbol, Int8, UInt8, Int16, UInt16, Int32, UInt32,
              Int64, UInt64, Int128, UInt128, Float32, Float64, Char, Ptr,
              DataType, UnionType, Function,
@@ -45,11 +40,52 @@ let i = 2
              false, true, nothing, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
              12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27,
              28, 29, 30, 31, 32]
-        ser_tag[t] = Int32(i)
+
+immutable LDict1
+    ptrs::Vector{Ptr{Void}}
+    LDict1() = new(Ptr{Void}[pointer_from_objref(t) for t in TAGS])
+end
+function Base.getindex(l::LDict1, v::ANY)
+    idx = Int32(2)
+    ptr = pointer_from_objref(v)
+    ptrs = l.ptrs
+    @inbounds for i = 1:length(ptrs)
+        ptr == ptrs[i] && return idx
+        idx += one(Int32)
+    end
+    error("this should not happen")
+end
+function Base.haskey(l::LDict1, v::ANY)
+    ptr = pointer_from_objref(v)
+    ptrs = l.ptrs
+    @inbounds for i = 1:length(ptrs)
+        ptr == ptrs[i] && return true
+    end
+    false
+end
+
+immutable LDict2
+end
+Base.haskey(l::LDict2, i::Int32) = begin
+    i > (length(TAGS)+1) && return false
+    return true
+end
+Base.getindex(l::LDict2, i::Int32) = TAGS[i-1]
+
+const ser_version = 2 # do not make changes without bumping the version #!
+const ser_tag = LDict1() #ObjectIdDict()
+const deser_tag = LDict2()
+
+#=
+let i = 2
+    global deser_tag
+    for t = TAGS
+        #ser_tag[t] = Int32(i)
         deser_tag[Int32(i)] = t
         i += 1
     end
 end
+=#
 
 # tags >= this just represent themselves, their whole representation is 1 byte
 const VALUE_TAGS = ser_tag[()]
