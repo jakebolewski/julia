@@ -46,19 +46,21 @@ immutable LDict1
     LDict1() = new(Ptr{Void}[pointer_from_objref(t) for t in TAGS])
 end
 function Base.getindex(l::LDict1, v::ANY)
-    idx = Int32(2)
+    idx = 2
     ptr = pointer_from_objref(v)
     ptrs = l.ptrs
-    @inbounds @simd for i = 1:length(ptrs)
-        ptr == ptrs[i] && return idx
-        idx += one(Int32)
+    nptrs = length(ptrs)
+    @inbounds @simd for i = 1:nptrs
+        ptr == ptrs[i] && return Int32(idx)
+        idx += 1
     end
     error("this should not happen")
 end
 function Base.haskey(l::LDict1, v::ANY)
     ptr = pointer_from_objref(v)
     ptrs = l.ptrs
-    @inbounds @simd for i = 1:length(ptrs)
+    nptrs = length(ptrs)
+    @inbounds @simd for i = 1:nptrs
         ptr == ptrs[i] && return true
     end
     false
@@ -72,7 +74,7 @@ end
 Base.getindex(l::LDict2, i::Int32) = TAGS[i-1]
 
 const ser_version = 2 # do not make changes without bumping the version #!
-const ser_tag = LDict1() #ObjectIdDict()
+const ser_tag = LDict1()
 const deser_tag = LDict2()
 
 function __init__()
@@ -80,16 +82,6 @@ function __init__()
         ser_tag.ptrs[i] = pointer_from_objref(TAGS[i])
     end
 end
-#=
-let i = 2
-    global deser_tag
-    for t = TAGS
-        #ser_tag[t] = Int32(i)
-        deser_tag[Int32(i)] = t
-        i += 1
-    end
-end
-=#
 
 # tags >= this just represent themselves, their whole representation is 1 byte
 const VALUE_TAGS = ser_tag[()]
