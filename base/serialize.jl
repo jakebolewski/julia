@@ -82,14 +82,7 @@ end
 
 # tags >= this just represent themselves, their whole representation is 1 byte
 const VALUE_TAGS = SER_TAG[()]
-
-const EMPTY_TUPLE_TAG = SER_TAG[()]
 const ZERO_TAG = SER_TAG[0]
-const INT_TAG = SER_TAG[Int]
-const UNDEF_TAG = SER_TAG[UndefRefTag]
-
-const TRUE_TAG = SER_TAG[true]
-const FALSE_TAG = SER_TAG[false]
 
 writetag(s, tag) = write(s, UInt8(tag))
 
@@ -98,20 +91,20 @@ function write_as_tag(s, tag)
     write(s, UInt8(tag))
 end
 
-serialize(s, x::Bool) = x ? write(s,UInt8(TRUE_TAG)) :
-                            write(s,UInt8(FALSE_TAG))
+@eval serialize(s, x::Bool) = x ? writetag(s, $(SER_TAG[true])) :
+                                  writetag(s, $(SER_TAG[false]))
 
 serialize(s, ::Ptr) = error("cannot serialize a pointer")
 
-serialize(s, ::Tuple{}) = write(s,UInt8(EMPTY_TUPLE_TAG)) # write_as_tag(s, ())
+@eval serialize(s, ::Tuple{}) = writetag(s, $(SER_TAG[()]))
 
-function serialize(s, t::Tuple)
+@eval function serialize(s, t::Tuple)
     l = length(t)
     if l <= 255
-        writetag(s, sertag(Tuple))
+        writetag(s, $(SER_TAG[Tuple]))
         write(s, UInt8(l))
     else
-        writetag(s, sertag(LongTuple))
+        writetag(s, $(SER_TAG[LongTuple]))
         write(s, Int32(l))
     end
     for i = 1:l
@@ -119,15 +112,15 @@ function serialize(s, t::Tuple)
     end
 end
 
-function serialize(s, v::SimpleVector)
-    writetag(s, sertag(SimpleVector))
+@eval function serialize(s, v::SimpleVector)
+    writetag(s, $(SER_TAG[SimpleVector]))
     write(s, Int32(length(v)))
     for i = 1:length(v)
         serialize(s, v[i])
     end
 end
 
-function serialize(s, x::Symbol)
+@eval function serialize(s, x::Symbol)
     tg = sertag(x)
     if tg > 0
         return write_as_tag(s, tg)
@@ -135,10 +128,10 @@ function serialize(s, x::Symbol)
     pname = unsafe_convert(Ptr{UInt8}, x)
     ln = Int(ccall(:strlen, Csize_t, (Ptr{UInt8},), pname))
     if ln <= 255
-        writetag(s, sertag(Symbol))
+        writetag(s, $(SER_TAG[Symbol]))
         write(s, UInt8(ln))
     else
-        writetag(s, sertag(LongSymbol))
+        writetag(s, $(SER_TAG[LongSymbol]))
         write(s, Int32(ln))
     end
     write(s, pname, ln)
@@ -164,8 +157,8 @@ function serialize_array_data(s, a)
     end
 end
 
-function serialize(s, a::Array)
-    writetag(s, sertag(Array))
+@eval function serialize(s, a::Array)
+    writetag(s, $(SER_TAG[Array]))
     elty = eltype(a)
     if elty !== UInt8
         serialize(s, elty)
@@ -182,17 +175,17 @@ function serialize(s, a::Array)
             if isdefined(a, i)
                 serialize(s, a[i])
             else
-                writetag(s, UNDEF_TAG)
+                writetag(s, $(SER_TAG[UndefRefTag]))
             end
         end
     end
 end
 
-function serialize{T,N,A<:Array}(s, a::SubArray{T,N,A})
+@eval function serialize{T,N,A<:Array}(s, a::SubArray{T,N,A})
     if !isbits(T) || stride(a,1)!=1
         return serialize(s, copy(a))
     end
-    writetag(s, sertag(Array))
+    writetag(s, $(SER_TAG[Array]))
     serialize(s, T)
     serialize(s, size(a))
     serialize_array_data(s, a)
@@ -220,13 +213,13 @@ function serialize(s, n::BigFloat)
     serialize(s, string(n))
 end
 
-function serialize(s, ex::Expr)
+@eval function serialize(s, ex::Expr)
     l = length(ex.args)
     if l <= 255
-        writetag(s, sertag(Expr))
+        writetag(s, $(SER_TAG[Expr]))
         write(s, UInt8(l))
     else
-        writetag(s, sertag(LongExpr))
+        writetag(s, $(SER_TAG[LongExpr]))
         write(s, Int32(l))
     end
     serialize(s, ex.head)
@@ -253,14 +246,14 @@ function serialize_mod_names(s, m::Module)
     end
 end
 
-function serialize(s, m::Module)
-    writetag(s, sertag(Module))
+@eval function serialize(s, m::Module)
+    writetag(s, $(SER_TAG[Module]))
     serialize_mod_names(s, m)
-    write(s, UInt8(EMPTY_TUPLE_TAG))
+    writetag(s, $(SER_TAG[()]))
 end
 
-function serialize(s, f::Function)
-    writetag(s, sertag(Function))
+@eval function serialize(s, f::Function)
+    writetag(s, $(SER_TAG[Function]))
     name = false
     if isgeneric(f)
         name = f.env.name
@@ -314,8 +307,8 @@ function lambda_number(l::LambdaStaticData)
     return ln
 end
 
-function serialize(s, linfo::LambdaStaticData)
-    writetag(s, sertag(LambdaStaticData))
+@eval function serialize(s, linfo::LambdaStaticData)
+    writetag(s, $(SER_TAG[LambdaStaticData]))
     serialize(s, lambda_number(linfo))
     serialize(s, uncompressed_ast(linfo))
     if isdefined(linfo.def, :roots)
@@ -333,11 +326,11 @@ function serialize(s, linfo::LambdaStaticData)
     end
 end
 
-function serialize(s, t::Task)
+@eval function serialize(s, t::Task)
     if istaskstarted(t) && !istaskdone(t)
         error("cannot serialize a running Task")
     end
-    writetag(s, sertag(Task))
+    writetag(s, $(SER_TAG[Task]))
     serialize(s, t.code)
     serialize(s, t.storage)
     serialize(s, t.state == :queued || t.state == :waiting ? (:runnable) : t.state)
@@ -351,7 +344,7 @@ function serialize_type_data(s, t)
     mod = t.name.module
     serialize(s, mod)
     if length(t.parameters) > 0
-        if isdefined(mod,tname) && is(t,eval(mod,tname))
+        if isdefined(mod,tname) && is(t,getfield(mod,tname))
             serialize(s, svec())
         else
             serialize(s, t.parameters)
@@ -359,36 +352,36 @@ function serialize_type_data(s, t)
     end
 end
 
-function serialize(s, t::DataType)
+@eval function serialize(s, t::DataType)
     tg = sertag(t)
     if tg > 0
         return write_as_tag(s, tg)
     end
-    writetag(s, sertag(DataType))
+    writetag(s, $(SER_TAG[DataType]))
     write(s, UInt8(0))
     serialize_type_data(s, t)
 end
 
-function serialize_type(s, t::DataType)
+@eval function serialize_type(s, t::DataType)
     tg = sertag(t)
     if tg > 0
         return writetag(s, tg)
     end
-    writetag(s, sertag(DataType))
+    writetag(s, $(SER_TAG[DataType]))
     write(s, UInt8(1))
     serialize_type_data(s, t)
 end
 
-function serialize(s, n::Int)
+@eval function serialize(s, n::Int)
     if 0 <= n <= 32
         write(s, UInt8(ZERO_TAG+n))
         return
     end
-    write(s, UInt8(INT_TAG))
+    writetag(s, $(SER_TAG[Int]))
     write(s, n)
 end
 
-function serialize(s, x)
+@eval function serialize(s, x)
     tg = sertag(x)
     if tg > 0
         return write_as_tag(s, tg)
@@ -403,7 +396,7 @@ function serialize(s, x)
             if isdefined(x, i)
                 serialize(s, getfield(x, i))
             else
-                writetag(s, UNDEF_TAG)
+                writetag(s, $(SER_TAG[UndefRefTag]))
             end
         end
     end
